@@ -1,15 +1,15 @@
 from flask import Flask, request
-import openai
 import os
 from dotenv import load_dotenv
+import openai
 
 # Load environment variables from .env
 load_dotenv()
 
-app = Flask(__name__)
+# Set up OpenAI client (new v1+ SDK format)
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Load the OpenAI API key from the .env file
-openai.api_key = os.getenv("OPENAI_API_KEY")
+app = Flask(__name__)
 
 @app.route("/")
 def home():
@@ -25,7 +25,7 @@ def webhook():
         print(f"Commit by: {commit['author']['name']}")
         print(f"Message: {commit['message']}")
         print("Files changed:")
-        for file in commit["modified"]:
+        for file in commit.get("modified", []):
             print(f"- {file}")
 
         prompt = f"""You are a senior developer. Here's a commit message:
@@ -34,16 +34,14 @@ def webhook():
 ---
 Please review the commit message and suggest improvements or issues."""
 
-        # GPT-3.5/4 Code Review
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a helpful and strict code reviewer."},
                     {"role": "user", "content": prompt}
                 ]
             )
-
             reply = response.choices[0].message.content
             print("\n🔍 GPT Review:\n", reply)
         except Exception as e:
@@ -52,4 +50,5 @@ Please review the commit message and suggest improvements or issues."""
     return {"status": "reviewed"}, 200
 
 if __name__ == "__main__":
-    app.run(port=5000) "# comment added" 
+    app.run(port=5000)
+"# comment added" 
