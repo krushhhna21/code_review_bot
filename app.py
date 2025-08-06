@@ -1,6 +1,9 @@
 from flask import Flask, request
 import os
 from dotenv import load_dotenv
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
 
 # Load environment variables from .env
 load_dotenv()
