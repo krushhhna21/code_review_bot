@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 import sys
 
-# Fix Unicode error in Windows terminal
+# Ensure UTF-8 encoding for emojis/logs
 sys.stdout.reconfigure(encoding='utf-8')
 
 # Load environment variables from .env
@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "✅ AI Code Reviewer is Live (Mock Mode)!"
+    return "✅ AI Code Reviewer is Live (Mock Mode with Code Review)!"
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -29,23 +29,25 @@ def webhook():
         print(f"Commit by: {author}")
         print(f"Message: {message}")
         print("Files changed:")
+        
         for file in modified_files:
             print(f"- {file}")
-
-            # Try reading the actual modified file content
             try:
                 with open(file, "r", encoding="utf-8") as f:
-                    code = f.read()
-
-                # Mocked review for real code
-                print(f"\n🔍 GPT Review for `{file}`:")
-                print("🧠 (Mocked GPT Review)")
-                print("✅ The structure looks fine. Consider adding docstrings and handling exceptions where necessary.\n")
-
+                    code_content = f.read()
             except Exception as e:
-                print(f"⚠️ Could not read file `{file}`:", e)
+                code_content = f"[⚠️ Error reading file: {e}]"
 
-    return {"status": "code-reviewed"}, 200
+            # Simulate GPT code review
+            mocked_code_review = (
+                f"🧠 (Mocked GPT Code Review for `{file}`)\n"
+                f"File contains {len(code_content.splitlines())} lines of code.\n"
+                "✅ Consider improving comments, adding exception handling, and ensuring code readability."
+            )
+            print("\n🔍 GPT Review for `{}`:\n{}".format(file, mocked_code_review))
+
+    return {"status": "reviewed"}, 200
 
 if __name__ == "__main__":
     app.run(port=5000)
+# 🔧 Week 4 test: Triggering mock code review with file content
