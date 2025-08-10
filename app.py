@@ -16,6 +16,7 @@ app = Flask(__name__)
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 HF_MODEL = "bigcode/starcoder"  # Good for code analysis
 
+
 def hf_code_review(prompt):
     """Send prompt to Hugging Face Inference API and return response."""
     url = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
@@ -34,19 +35,25 @@ def hf_code_review(prompt):
             return f"⚠️ Error parsing response: {e}"
     return f"⚠️ Error from Hugging Face API: {response.text}"
 
+
 def read_file_content(filepath):
-    """Safely read file content if it exists."""
+    """Safely read file content if it exists, works for files in subfolders."""
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        return None
+        file_path = os.path.join(os.getcwd(), filepath)  # Full path
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                return f.read()
+        else:
+            print(f"⚠️ Skipping unsupported or missing file: {filepath}")
+            return None
     except Exception as e:
         return f"⚠️ Error reading file: {e}"
+
 
 @app.route("/")
 def home():
     return "✅ AI Code Reviewer (Hugging Face, Full File Review) is Live!"
+
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -67,7 +74,7 @@ def webhook():
             print(f"- {file}")
             file_content = read_file_content(file)
 
-            if file_content:
+            if file_content and file.endswith(".py"):
                 prompt = f"Review the following Python code and suggest improvements:\n\n{file_content}"
                 review = hf_code_review(prompt)
                 print(f"\n🔍 AI Review for `{file}`:\n{review}\n")
@@ -76,6 +83,6 @@ def webhook():
 
     return {"status": "reviewed"}, 200
 
+
 if __name__ == "__main__":
     app.run(port=5000)
-#hello
