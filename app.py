@@ -16,6 +16,9 @@ app = Flask(__name__)
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 HF_MODEL = "bigcode/starcoder"  # Good for code analysis
 
+# Base repo path (directory where this script is located)
+REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+
 
 def hf_code_review(prompt):
     """Send prompt to Hugging Face Inference API and return response."""
@@ -36,11 +39,21 @@ def hf_code_review(prompt):
     return f"⚠️ Error from Hugging Face API: {response.text}"
 
 
-def read_file_content(filepath):
-    """Safely read file content if it exists, works for files in subfolders."""
+def is_text_file(filepath):
+    """Check if file is a text file (skip binaries)."""
     try:
-        file_path = os.path.join(os.getcwd(), filepath)  # Full path
-        if os.path.exists(file_path):
+        with open(filepath, "rb") as f:
+            chunk = f.read(1024)
+            return b"\0" not in chunk  # Binary files usually contain null bytes
+    except Exception:
+        return False
+
+
+def read_file_content(filepath):
+    """Safely read file content if it exists."""
+    try:
+        file_path = os.path.join(REPO_ROOT, filepath)  # Full path
+        if os.path.exists(file_path) and is_text_file(file_path):
             with open(file_path, "r", encoding="utf-8") as f:
                 return f.read()
         else:
@@ -74,8 +87,8 @@ def webhook():
             print(f"- {file}")
             file_content = read_file_content(file)
 
-            if file_content and file.endswith(".py"):
-                prompt = f"Review the following Python code and suggest improvements:\n\n{file_content}"
+            if file_content:
+                prompt = f"Review the following code and suggest improvements:\n\n{file_content}"
                 review = hf_code_review(prompt)
                 print(f"\n🔍 AI Review for `{file}`:\n{review}\n")
             else:
